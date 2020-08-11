@@ -5,8 +5,8 @@
 # .tfstate files
 *.tfstate
 *.tfstate.*
-.terraform/*
-.terraform/plugins/darwin_amd64/terraform-provider-aws_v3.1.0_x5
+
+
 
 # Crash log files
 crash.log
