@@ -26,7 +26,8 @@ resource "aws_internet_gateway" "gw" {
 
 
 resource "aws_subnet" "public_subnet" {
-	count = 2
+	#count = 2
+	count = "${length(var.public_cidrs)}"
 	cidr_block = "${var.public_cidrs[count.index]}"
 	vpc_id = "${aws_vpc.main.id}"
 	map_public_ip_on_launch  = true
@@ -43,31 +44,13 @@ resource "aws_eip" "my-foo-eip" {
 }
 
 
-resource "aws_nat_gateway" "my-foo-nat-gateway"{
-	allocation_id = "${aws_eip.my-foo-eip.id}"
-	subnet_id = "${aws_subnet.public_subnet.0.id}"
-}
-
-
-
-resource "aws_subnet" "private_subnet" {
-	count = 2
-	cidr_block = "${var.private_cidrs[count.index]}"
-	vpc_id =  "${aws_vpc.main.id}"
-	map_public_ip_on_launch = true
-	availability_zone = "${ data.aws_availability_zones.available.names[count.index]}"
-
-	tags = {
-    	Name = "my-foo-private-subnet.${count.index + 1}"
-  	}
-}
-
-
 resource "aws_route_table_association" "public_subnet_assoc" {
+	#count = "${length(var.subnet_cidrs_public)}"
 	count = 2
-	route_table_id = "${aws_default_route_table.private_route.id}"
+	route_table_id = "${aws_default_route_table.public_route.id}"
 	subnet_id = "${aws_subnet.public_subnet.*.id[count.index]}"
-	depends_on = ["aws_route_table.public_route","aws_subnet.public_subnet"]
+	#depends_on = ["aws_route_table.public_route","aws_subnet.public_subnet"]
+	#depends_on = ["aws_default_route_table.private_route","aws_subnet.private_subnet"]
 }
 
 resource "aws_security_group" "foo_sg" {
@@ -103,14 +86,14 @@ resource "aws_security_group_rule" "all_outbound_access" {
 }
 
 resource "aws_route" "my-tgw-route" {
-  route_table_id         = "${aws_route_table.public_route.id}"
+  route_table_id         = "${aws_default_route_table.public_route.id}"
+  #route_table_id         = "${aws_route_table.public_route.id}"
   destination_cidr_block = "0.0.0.0/0"
   transit_gateway_id     = "${var.transit_gateway}"
 }
 
-
-#resource "aws_route_table" "public_route" {
-resource "aws_default_route_table" "private_route" {
+#resource "aws_default_route_table" "private_route" {
+	resource "aws_default_route_table" "public_route" {
     default_route_table_id = "${aws_vpc.main.default_route_table_id}"
     
 
@@ -126,9 +109,26 @@ resource "aws_default_route_table" "private_route" {
 
 
 
+resource "aws_subnet" "private_subnet" {
+	count = 2
+	cidr_block = "${var.private_cidrs[count.index]}"
+	vpc_id =  "${aws_vpc.main.id}"
+	map_public_ip_on_launch = true
+	availability_zone = "${ data.aws_availability_zones.available.names[count.index]}"
 
+	tags = {
+    	Name = "my-foo-private-subnet.${count.index + 1}"
+  	}
+}
 
-resource "aws_route_table" "public_route" {
+/*
+
+resource "aws_nat_gateway" "my-foo-nat-gateway"{
+	allocation_id = "${aws_eip.my-foo-eip.id}"
+	subnet_id = "${aws_subnet.private_subnet.0.id}"
+}
+
+resource "aws_route_table" "private_route" {
     vpc_id = "${aws_vpc.main.id}"
 
     route { 
@@ -140,3 +140,18 @@ resource "aws_route_table" "public_route" {
         Name = "my-private-route-table"
     }
 }
+
+*/
+
+/*
+data "aws_vpc" "default" {
+  default = true
+}
+
+
+data "aws_subnet_ids" "default" {
+  vpc_id = data.aws_vpc.default.id
+}
+
+vpc_zone_identifier  = data.aws_subnet_ids.default.ids
+*/

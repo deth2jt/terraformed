@@ -25,3 +25,7 @@ output "private_subnet1" {
 output "private_subnet2" {
   value = "${element(aws_subnet.private_subnet.*.id, 2 )}"
 }
+
+output "default_route_table" {
+  value = "${aws_default_route_table.public_route.id}"
+}
